@@ -275,10 +275,25 @@ def findbin_SNP(start, binmap, snpmap, ril, chrs):
     else:
         #block genotype known, use snp to comfirm
         if gt_1[0] == gt_2[0] and str(gt_1[0]) == str(binmap[ril][chrs][array[index[1]]]):
+            #top SNP genotype consistent with bin genotype, then check the flanking SNP to remove any possibility of recombination at mPing loci
             if str(snpmap[ril][chrs][backward_snp_idx[-1]]) == str(binmap[ril][chrs][array[index[1]]]) and str(snpmap[ril][chrs][forward_snp_idx[0]]) == str(binmap[ril][chrs][array[index[1]]]):
                 print 'Consistent: SNP genotype %s; Bin genotype %s' %(gt_1[0], binmap[ril][chrs][array[index[1]]])
                 #snp consistent with genotype block
                 pos_gt.extend([array[index[1]], gt_1[0]])
+            elif str(snpmap[ril][chrs][backward_snp_idx[-1]]) == 'NA':
+                # 5' flank SNP is NA, we use the second last SNP to compare with bin genotype
+                if str(snpmap[ril][chrs][backward_snp_idx[-2]]) == str(binmap[ril][chrs][array[index[1]]]) and str(snpmap[ril][chrs][forward_snp_idx[0]]) == str(binmap[ril][chrs][array[index[1]]]):
+                    pos_gt.extend([array[index[1]], gt_1[0]])
+                else:                
+                    print 'Inconsistent: flanking SNP genotype %s %s; Bin genotype %s' %(str(snpmap[ril][chrs][backward_snp_idx[-2]]), str(snpmap[ril][chrs][forward_snp_idx[0]]), binmap[ril][chrs][array[index[1]]])
+                    pos_gt.extend([array[index[1]], 'NA'])
+            elif str(snpmap[ril][chrs][forward_snp_idx[0]]) == 'NA':
+                # 3' flank SNP is NA, we use the second last SNP to compare with bin genotype
+                if str(snpmap[ril][chrs][backward_snp_idx[-1]]) == str(binmap[ril][chrs][array[index[1]]]) and str(snpmap[ril][chrs][forward_snp_idx[1]]) == str(binmap[ril][chrs][array[index[1]]]):
+                    pos_gt.extend([array[index[1]], gt_1[0]])
+                else:
+                    print 'Inconsistent: flanking SNP genotype %s %s; Bin genotype %s' %(str(snpmap[ril][chrs][backward_snp_idx[-1]]), str(snpmap[ril][chrs][forward_snp_idx[1]]), binmap[ril][chrs][array[index[1]]])
+                    pos_gt.extend([array[index[1]], 'NA'])
             else:
                 print 'Inconsistent: flanking SNP genotype %s %s; Bin genotype %s' %(str(snpmap[ril][chrs][backward_snp_idx[-1]]), str(snpmap[ril][chrs][forward_snp_idx[0]]), binmap[ril][chrs][array[index[1]]])
                 pos_gt.extend([array[index[1]], 'NA'])
@@ -360,8 +375,8 @@ def bamcheck_ref(bam, mping, bamck_file, ril):
     r_start = int(match.groups(0)[2]) - 2
     r_end   = int(match.groups(0)[2]) + 2
     r_mping = '%s:%s-%s' %(chro, r_start, r_end)
-    l_flag  = bamcheck_simple(bam, l_mping, bamck_file)
-    r_flag  = bamcheck_simple(bam, r_mping, bamck_file)
+    l_flag  = bamcheck_simple(bam, l_mping, bamck_file, 5)
+    r_flag  = bamcheck_simple(bam, r_mping, bamck_file, 3)
     region  = '%s:%s-%s' %(chro, l_start-500, r_end+500)  
     test_bam = './test_bam/%s_%s.bam' %(ril, mping)
     os.system('samtools view -hb %s %s > %s' %(bam, region, test_bam))
@@ -397,18 +412,20 @@ def bamcheck(bam, mping, bamck_file, ril):
     end   = int(match.groups(0)[2])
 
     chro    = match.groups(0)[0]
-    region  = '%s:%s-%s' %(chro, start-500, end+500)  
+    region  = '%s:%s-%s' %(chro, start-500, end+500)
+    mping_5 = '%s:%s-%s' %(chro, start-5, end+5) 
     #test_bam = './test_bam/%s_%s.bam' %(ril, mping)
     #os.system('samtools view -hb %s %s > %s' %(bam, region, test_bam))
     #os.system('samtools index %s' %(test_bam))
 
-    cmd = '/opt/linux/centos/7.x/x86_64/pkgs/samtools/1.2/bin/samtools view %s %s' %(bam, mping)
+    cmd = '/opt/linux/centos/7.x/x86_64/pkgs/samtools/1.2/bin/samtools view %s %s' %(bam, mping_5)
     ofile = open(bamck_file, 'a') 
     print >> ofile, bam, mping
     print >> ofile, cmd
     out = subprocess.check_output(cmd, shell=True)
     lines = re.split(r'\n', out)
     total = 0
+    total_count = 0
     covered = 0
     clipped = 0
     footprint = 0
@@ -421,6 +438,8 @@ def bamcheck(bam, mping, bamck_file, ril):
         total += 1
         unit = re.split(r'\t', line)
         if len(unit) < 2:
+            continue
+        if int(unit[4]) < 29:
             continue
         matches = []
         indel = 0
@@ -441,11 +460,12 @@ def bamcheck(bam, mping, bamck_file, ril):
         for i in range(1, len(matches)):
             i = i - j
             if matches[i][1] == matches[i-1][1]:
-                matches[i-1][0] = matches[i][0] + matches[i-1][0]
+                matches[i-1][0] = str(int(matches[i][0]) + int(matches[i-1][0]))
                 del matches[i]
                 j = j + 1
-        #print >> ofile, len(matches)
-        flank = 20
+        
+        print >> ofile, matches
+        flank = 10
         if indel > 0 and soft > 0:
             flag += 1
         elif indel > 0:
@@ -456,33 +476,37 @@ def bamcheck(bam, mping, bamck_file, ril):
         elif len(matches) == 2: # may have soft clip
             if matches[0][1] == 'S' and int(matches[0][0]) > 10 and matches[1][1] == 'M' and int(matches[1][0]) > 10: # clip at start
                 if int(unit[3]) > start - flank and int(unit[3]) < end + flank: # read at mping insertion site, so the clip should be due to mping insertion
-                    covered += 1
+                    #covered += 1
                     clipped += 1
                 elif int(unit[3]) <= start - flank and int(unit[3]) + int(matches[1][0]) >= end + flank: # read cover mping insertion site
                     covered += 1
             elif matches[1][1] == 'S' and int(matches[1][0]) > 10 and matches[0][1] == 'M' and int(matches[0][0]) > 10: # clip at end
                 if int(unit[3]) + int(matches[0][0]) > start - flank and int(unit[3]) + int(matches[0][0]) < end + flank: # read at mping insertion site, so the clip should be due to mping insertion
-                    covered += 1
+                    #covered += 1
                     clipped += 1
                 elif int(unit[3]) <= start - flank and int(unit[3]) + int(matches[0][0]) >= end + flank: # read cover mping insertion site
                     covered += 1
         elif len(matches) == 3 and matches[0][1] == 'S' and matches[1][1] == 'M' and matches[2][1] == 'S': # may have soft clip, but the other end of reads have clip too
             if int(unit[3]) > start - flank and int(unit[3]) < end + flank and int(matches[0][0]) > 10: # read at mping insertion site, so the clip should be on the left if due to mping
-                covered += 1
+                #covered += 1
                 clipped += 1
-            elif int(unit[3]) + int(matches[1][0]) > start - flank and int(unit[3]) + int(matches[1][0]) < end + flank: # read start before mping insertion site, but clipped at mping
-                covered += 1
+            elif int(unit[3]) + int(matches[1][0]) > start - flank and int(unit[3]) + int(matches[1][0]) < end + flank and int(matches[2][0]) > 10: # read start before mping insertion site, but clipped at mping
+                #covered += 1
                 clipped += 1
             elif int(unit[3]) <= start - flank and int(unit[3]) + int(matches[1][0]) >= end + flank: # read cover the mping insertion site
                 covered += 1
         print >> ofile, covered, clipped
+ 
+    #Use only covered and clipped reads for each junctions. These are useful reads. Other reads are not covering the junction or TEs. 
+    total_count = covered + clipped
+    total       = total_count
     print >> ofile, covered, clipped
     print >> ofile, total, footprint, flag, float(float(footprint)/total)
     rate = float(float(clipped)/covered) if covered > 0 else 0
     if total <= 2:
         print >> ofile, 2
         return 2 # coverage too low
-    elif float(float(clipped)/total) > 0.3:
+    elif float(float(clipped)/total) >= 0.3:
         print >> ofile, 1
         return 1 # support mping insertion with clipped reads
     elif total > 2 and clipped < 1 and covered < 1 and flag < 1 and footprint < 1:
@@ -491,8 +515,8 @@ def bamcheck(bam, mping, bamck_file, ril):
     #elif float(float(footprint)/total) > 0.3 and flag == 0:
     #    print >> ofile, 0
     #    return 0 # support mping excision, indel is possibly footprint of excision
-    elif float(float(covered)/total) > 0.3:
-        print >> ofile, 0
+    elif float(float(covered)/total) >= 0.3:
+	print >> ofile, 0
         if footprint >= 3:
             return 0 # support mping excision, many read cover the breapoint suggests precise excision, footprint
         else:
@@ -502,18 +526,21 @@ def bamcheck(bam, mping, bamck_file, ril):
         return 3 # other case
 
  
-def bamcheck_simple(bam, mping, bamck_file):
+def bamcheck_simple(bam, mping, bamck_file, orientation):
     reg = re.compile(r'(Chr\d+):(\d+)\-(\d+)')
     match = reg.search(mping)
+    chro = match.groups(0)[0]
     start = int(match.groups(0)[1])
     end   = int(match.groups(0)[2])
-    cmd = '/opt/linux/centos/7.x/x86_64/pkgs/samtools/1.2/bin/samtools view %s %s' %(bam, mping)
+    mping_5 = '%s:%s-%s' %(chro, start-5, end+5)
+    cmd = '/opt/linux/centos/7.x/x86_64/pkgs/samtools/1.2/bin/samtools view %s %s' %(bam, mping_5)
     ofile = open(bamck_file, 'a') 
     print >> ofile, bam, mping
     print >> ofile, cmd
     out = subprocess.check_output(cmd, shell=True)
     lines = re.split(r'\n', out)
     total = 0
+    total_count = 0
     covered = 0
     clipped = 0
     footprint = 0
@@ -551,10 +578,11 @@ def bamcheck_simple(bam, mping, bamck_file):
         for i in range(1, len(matches)):
             i = i - j
             if matches[i][1] == matches[i-1][1]:
-                matches[i-1][0] = matches[i][0] + matches[i-1][0]
+                matches[i-1][0] = str(int(matches[i][0]) + int(matches[i-1][0]))
                 del matches[i]
                 j = j + 1
-        #print >> ofile, len(matches)
+          
+        print >> ofile, matches
         flank = 10
         if indel > 0 and soft > 0:
             flag += 1
@@ -566,35 +594,63 @@ def bamcheck_simple(bam, mping, bamck_file):
         elif len(matches) == 2: # may have soft clip
             if matches[0][1] == 'S' and int(matches[0][0]) > 10 and matches[1][1] == 'M' and int(matches[1][0]) > 10: # clip at start
                 if int(unit[3]) > start - flank and int(unit[3]) < end + flank: # read at mping insertion site, so the clip should be due to mping insertion
-                    covered += 1
-                    clipped += 1
+                    #covered += 1
+                    #clipped += 1
+                    if int(orientation) == 5: 
+                        #this is the 5' junction of mPing, these reads are clipped reads of mPing elements
+                        continue
+                    elif int(orientation) == 3:
+                        #this is the 3' junction of mPing, these reads are clipped reads of flanking sequences
+                        clipped += 1
                 elif int(unit[3]) <= start - flank and int(unit[3]) + int(matches[1][0]) >= end + flank: # read cover mping insertion site
                     covered += 1
             elif matches[1][1] == 'S' and int(matches[1][0]) > 10 and matches[0][1] == 'M' and int(matches[0][0]) > 10: # clip at end
                 if int(unit[3]) + int(matches[0][0]) > start - flank and int(unit[3]) + int(matches[0][0]) < end + flank: # read at mping insertion site, so the clip should be due to mping insertion
-                    covered += 1
-                    clipped += 1
+                    #covered += 1
+                    #clipped += 1
+                    if int(orientation) == 5:
+                        #this is the 5' junction of mPing, these reads are clipped reads of flanking sequences
+                        clipped += 1
+                    elif int(orientation) == 3:
+                        #this is the 3' junction of mPing, these reads are clipped reads of mPing elements
+                        continue
                 elif int(unit[3]) <= start - flank and int(unit[3]) + int(matches[0][0]) >= end + flank: # read cover mping insertion site
                     covered += 1
         elif len(matches) == 3 and matches[0][1] == 'S' and matches[1][1] == 'M' and matches[2][1] == 'S': # may have soft clip, but the other end of reads have clip too
             if int(unit[3]) > start - flank and int(unit[3]) < end + flank and int(matches[0][0]) > 10: # read at mping insertion site, so the clip should be on the left if due to mping
-                covered += 1
-                clipped += 1
-            elif int(unit[3]) + int(matches[1][0]) > start - flank and int(unit[3]) + int(matches[1][0]) < end + flank: # read start before mping insertion site, but clipped at mping
-                covered += 1
-                clipped += 1
+                #covered += 1
+                #clipped += 1
+                if int(orientation) == 5:
+                    #this is the 5' junction of mPing, these reads are clipped reads of mPing elements
+                    continue
+                elif int(orientation) == 3:
+                    #this is the 3' junction of mPing, these reads are clipped reads of flanking sequences
+                    clipped += 1 
+            elif int(unit[3]) + int(matches[1][0]) > start - flank and int(unit[3]) + int(matches[1][0]) < end + flank and int(matches[2][0]) > 10: # read start before mping insertion site, but clipped at mping
+                #covered += 1
+                #clipped += 1
+                if int(orientation) == 5:
+                    #this is the 5' junction of mPing, these reads are clipped reads of flanking
+                    clipped += 1
+                elif int(orientation) == 3:
+                    #this is the 3' junction of mPing, these reads are clipped reads of mPing elements
+                    continue 
             elif int(unit[3]) <= start - flank and int(unit[3]) + int(matches[1][0]) >= end + flank: # read cover the mping insertion site
                 covered += 1
         print >> ofile, covered, clipped
+
+    #Use only covered and clipped reads for each junctions. These are useful reads. Other reads are not covering the junction or TEs.
+    total_count = covered + clipped
+    total       = total_count 
     if int(total) == 0:
         return 2 # coverage too low
     print >> ofile, covered, clipped
     print >> ofile, total, covered, clipped, flag, float(float(covered)/total), float(float(clipped)/total)
     rate = float(float(clipped)/covered) if covered > 0 else 0
-    if total <= 0:
+    if total <= 2:
         print >> ofile, 2
         return 2 # coverage too low
-    elif float(float(clipped)/total) > 0.3:
+    elif float(float(clipped)/total) >= 0.3:
         print >> ofile, 1
         return 1 # support mping insertion with clipped reads
     elif total > 2 and clipped < 1 and covered < 1 and flag < 1 and footprint < 1:
@@ -603,7 +659,7 @@ def bamcheck_simple(bam, mping, bamck_file):
     #elif float(float(footprint)/total) > 0.3 and flag == 0:
     #    print >> ofile, 0
     #    return 0 # support mping excision, indel is possibly footprint of excision
-    elif float(float(covered)/total) > 0.3:
+    elif float(float(covered)/total) >= 0.3:
         print >> ofile, 0
         if footprint >= 3:
             return 0 # support mping excision, many read cover the breapoint suggests precise excision, footprint

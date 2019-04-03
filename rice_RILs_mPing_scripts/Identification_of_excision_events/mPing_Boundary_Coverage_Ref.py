@@ -64,8 +64,8 @@ def bamcheck_ref(bam, mping, bamck_file, ril):
     r_start = int(match.groups(0)[2]) - 2
     r_end   = int(match.groups(0)[2]) + 2
     r_mping = '%s:%s-%s' %(chro, r_start, r_end)
-    l_flag  = bamcheck_simple(bam, l_mping, bamck_file)
-    r_flag  = bamcheck_simple(bam, r_mping, bamck_file)
+    l_flag  = bamcheck_simple(bam, l_mping, bamck_file, 5)
+    r_flag  = bamcheck_simple(bam, r_mping, bamck_file, 3)
     return (l_flag, r_flag)
 
 def decode(flag):

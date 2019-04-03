@@ -43,12 +43,15 @@ ln -s Chr9_16690610_16690612.matrix.csv Chr9_16690612_16690614.matrix.csv
 python Sum_mPing_excision.py --dir output_MSU7_nonreference_514_mPing_GT_Ping_code --gff Parent.ALL.mPing_Ping.422.gff
 
 #reference
-sbatch run_mPing_Boundary_Coverage.sh
+sbatch run_mPing_Boundary_Coverage_Ref.sh
 python Ping_number_RILs.High_exicison_Ref.py --csv output_MSU7_reference_57_mPing --ping_code RIL272_RelocaTEi.Jinfeng_Lulu.ping_code.table.txt --gff Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff --output output_MSU7_reference_57_mPing_GT_Ping_code
 python Sum_mPing_excision_Ref.py --dir output_MSU7_reference_57_mPing_GT_Ping_code --gff Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff
 grep "Pong" output_MSU7_reference_57_mPing_GT_Ping_code.mping_excision.list > output_MSU7_reference_57_mPing_GT_Ping_code.mping_excision.Pong.list
 grep "mping" output_MSU7_reference_57_mPing_GT_Ping_code.mping_excision.list > output_MSU7_reference_57_mPing_GT_Ping_code.mping_excision.mPing.list
 grep -v "mping" output_MSU7_reference_57_mPing_GT_Ping_code.mping_excision.list | grep -v "Pong" > output_MSU7_reference_57_mPing_GT_Ping_code.mping_excision.Ping.list
+#multiple process
+sbatch run_mPing_Boundary_Coverage_Ref_MP.sh
+python Ping_number_RILs.High_exicison_Ref.py --csv output_MSU7_reference_57_MP_mPing --ping_code RIL272_RelocaTEi.Jinfeng_Lulu.ping_code.table.txt --gff Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff --output output_MSU7_reference_57_MP_mPing_GT_Ping_code
 
 #footprint
 #old version

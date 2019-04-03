@@ -77,8 +77,8 @@ def read_csv(infile, ping_code, locus_gt, outdir):
                         if (unit[2] == 'clipped' or unit[3] == 'clipped') and unit[4] == 'covered':
                             flag1 = 1
                             flag2 = 1
-                        #if unit[4] == 'covered':
-                        #    flag2 = 1
+                        if unit[4] == 'covered':
+                            flag2 = 1
                         #insertion
                         if unit[2] == 'covered' and unit[3] == 'covered' and unit[4] == 'clipped':
                             flag1 = 2
@@ -86,8 +86,8 @@ def read_csv(infile, ping_code, locus_gt, outdir):
                         if (unit[2] == 'covered' or unit[3] == 'covered') and unit[4] == 'clipped':
                             flag1 = 2
                             flag2 = 2
-                        #if unit[4] == 'clipped': 
-                        #    flag2 = 2
+                        if unit[4] == 'clipped': 
+                            flag2 = 2
                         #status
                         if flag1 == 1 and flag2 == 1:
                             flag = 'Excision'
@@ -98,15 +98,26 @@ def read_csv(infile, ping_code, locus_gt, outdir):
                         elif flag1 == 2 and flag2 == 1:
                             flag = 'Check'
                         elif flag1 == 1 and flag2 == 0:
-                            flag = 'Check'
+                            flag = 'Excision'
                         elif flag1 == 0 and flag2 == 1:
-                            flag = 'Check'
+                            flag = 'Excision'
                         elif flag1 == 2 and flag2 == 0:
-                            flag = 'Check'
+                            flag = 'Insertion'
                         elif flag1 == 0 and flag2 == 2:
-                            flag = 'Check'
+                            flag = 'Insertion'
                         else:
                             flag = 'Check'
+                        
+                        #conflic
+                        if unit[2] == 'clipped' and unit[3] == 'covered':
+                            flag = 'Check'
+                        elif unit[2] == 'covered' and unit[3] == 'clipped':
+                            flag = 'Check'
+                        elif unit[2] == unit[4] and not unit[4] == 'unknown':
+                            flag = 'Check'
+                        elif unit[3] == unit[4] and not unit[4] == 'unknown':
+                            flag = 'Check'
+
                     elif unit[1] == 'HEG4':
                         flag = 'HEG4_GT'
                     #print ril, unit[1], flag, flag1, flag2

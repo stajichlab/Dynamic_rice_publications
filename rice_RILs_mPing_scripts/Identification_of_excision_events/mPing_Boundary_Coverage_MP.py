@@ -7,6 +7,7 @@ import os
 import argparse
 from Bio import SeqIO
 import subprocess
+import multiprocess as mp
 sys.path.append('%s/lib' %(os.getcwd()))
 from excision import bamcheck, bamcheck_simple, convert_MAP, genotyping, convert_MAP_SNP, genotyping_SNP
 import glob
@@ -107,6 +108,43 @@ def get_rils(bams):
         rils.append(ril)
     return rils
 
+##run function with parameters using multiprocess of #cpu
+def multiprocess_pool(parameters, cpu):
+    pool = mp.Pool(int(cpu))
+    imap_it = pool.map(mping_genotyper_mp_helper, tuple(parameters))
+    collect_list = []
+    for x in imap_it:
+        #print 'status: %s' %(x)
+        collect_list.append(x)
+    return collect_list
+
+def mping_genotyper_mp_helper(args):
+    return mping_genotyper_mp_runner(*args)
+
+def mping_genotyper_mp_runner(ril, bam_ref, bam_pseudo, mping2ID_0, binmap, snpmap, bamcheck_file_ref, bamcheck_file_pseudo):
+    genotype = 3
+    l_flag = 3
+    r_flag = 3
+    ref_flag = 3
+    results  = []
+    bamcheck_file_pseudo = '%s.%s.txt' %(bamcheck_file_pseudo, ril)
+    bamcheck_file_ref    = '%s.%s.txt' %(bamcheck_file_ref, ril) 
+    if os.path.isfile(bam_ref):
+        if os.path.isfile(bam_pseudo):
+            for mping in sorted(mping2ID_0.keys()):
+                #genotype: 0 ref, 1 non_ref, 3 unknown
+                genotype = genotyping_SNP(ril, mping2ID_0[mping], binmap, snpmap)
+                l_flag, r_flag = bamcheck_ref(bam_pseudo, mping, bamcheck_file_pseudo, ril)
+                ref_flag       = bamcheck(bam_ref, mping2ID_0[mping], bamcheck_file_ref, ril)
+                results.append([mping, genotype, l_flag, r_flag, ref_flag]) 
+                print '%s\t%s\t%s\t%s' %(ril, mping, l_flag, r_flag)
+        else:
+            print 'pseudo bam file not found for rils: RIL%s' %(ril)   
+    else:
+        print 'reference bam file not found for rils: RIL%s' %(ril)
+    return [ril, results]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bam_ref')
@@ -114,7 +152,8 @@ def main():
     parser.add_argument('--gff_ref')
     parser.add_argument('--gff_pseudo')
     parser.add_argument('--bin_map')
-    parser.add_argument('--snp_map') 
+    parser.add_argument('--snp_map')
+    parser.add_argument('--cpu') 
     parser.add_argument('--project')
     parser.add_argument('-v', dest='verbose', action='store_true')
     args = parser.parse_args()
@@ -138,7 +177,10 @@ def main():
         args.bin_map = 'MPR.geno.bin'
     if not args.snp_map:
         args.snp_map = 'MPR.geno.data'
+    if not args.cpu:
+        args.cpu = 16
 
+    cpu = args.cpu
     #we use mping gff from pseudogenome as key to project to everything 
     mping2ID_0  = defaultdict(lambda : str()) #ID_0 is the mping id from original call in HEG4, Chr1.1132977
     id_mapping(args.gff_pseudo, mping2ID_0)
@@ -148,8 +190,8 @@ def main():
     snpmap = convert_MAP_SNP(args.snp_map)
 
     #go through RILs, for each ril determine the status of each mPing
-    bamcheck_file_pseudo = '%s.bamcheck_pseudo.txt' %(args.project)
-    bamcheck_file_ref    = '%s.bamcheck_ref.txt' %(args.project)
+    bamcheck_file_pseudo = '%s.bamcheck_pseudo' %(args.project)
+    bamcheck_file_ref    = '%s.bamcheck_ref' %(args.project)
     mping_status      = defaultdict(lambda : defaultdict(lambda : defaultdict(lambda : str())))
     mping_status_ref  = defaultdict(lambda : defaultdict(lambda : str()))
     mping_bin_gt  = defaultdict(lambda : defaultdict(lambda : str()))
@@ -157,23 +199,23 @@ def main():
     #rils = [1, 2, 3, 4]
     bams = glob.glob('%s/*.bam' %(args.bam_pseudo))
     rils = get_rils(bams)
+    parameters = []
     for ril in sorted(rils):
         bam_ref    = '%s/GN%s.bam' %(args.bam_ref, ril)
         bam_pseudo = '%s/RIL%s.bam' %(args.bam_pseudo, ril)
         print 'ril: %s, %s' %(ril, bam_pseudo)
-        if os.path.isfile(bam_pseudo):
-            for mping in sorted(mping2ID_0.keys()):
-                #genotype: 0 ref, 1 non_ref, 3 unknown
-                genotype = genotyping_SNP(ril, mping2ID_0[mping], binmap, snpmap)
-                l_flag, r_flag = bamcheck_ref(bam_pseudo, mping, bamcheck_file_pseudo, ril)
-                ref_flag       = bamcheck(bam_ref, mping2ID_0[mping], bamcheck_file_ref, ril) 
-                #print '%s\t%s\t%s\t%s' %(ril, mping, l_flag, r_flag)
-                mping_status[ril][mping2ID_0[mping]]['up']   = decode(l_flag)
-                mping_status[ril][mping2ID_0[mping]]['down'] = decode(r_flag)
-                mping_status_ref[ril][mping2ID_0[mping]]     = decode(ref_flag)
-                mping_bin_gt[ril][mping2ID_0[mping]] = decode_gt(genotype)
-        else:
-            print 'bam file not found for rils: RIL%s' %(ril)   
+        parameters.append([ril, bam_ref, bam_pseudo, mping2ID_0, binmap, snpmap, bamcheck_file_ref, bamcheck_file_pseudo])
+
+    #run multiprocesses
+    collect_results = multiprocess_pool(parameters, cpu)
+    #process results
+    for ril, results in collect_results:
+        for mping, genotype, l_flag, r_flag, ref_flag in results:
+            print '%s\t%s\t%s\t%s\t%s\t%s' %(ril, mping, genotype, l_flag, r_flag, ref_flag)
+            mping_status[ril][mping2ID_0[mping]]['up']   = decode(l_flag)
+            mping_status[ril][mping2ID_0[mping]]['down'] = decode(r_flag)
+            mping_status_ref[ril][mping2ID_0[mping]]     = decode(ref_flag)
+            mping_bin_gt[ril][mping2ID_0[mping]] = decode_gt(genotype)
 
     #output matrix into file
     matrix_file = '%s.mping_status.matrix.txt' %(args.project)
