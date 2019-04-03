@@ -465,7 +465,7 @@ def bamcheck(bam, mping, bamck_file, ril):
                 j = j + 1
         
         print >> ofile, matches
-        flank = 10
+        flank = 20
         if indel > 0 and soft > 0:
             flag += 1
         elif indel > 0:
@@ -500,6 +500,8 @@ def bamcheck(bam, mping, bamck_file, ril):
     #Use only covered and clipped reads for each junctions. These are useful reads. Other reads are not covering the junction or TEs. 
     total_count = covered + clipped
     total       = total_count
+    if int(total) == 0:
+        return 2 # coverage too low
     print >> ofile, covered, clipped
     print >> ofile, total, footprint, flag, float(float(footprint)/total)
     rate = float(float(clipped)/covered) if covered > 0 else 0
@@ -583,7 +585,7 @@ def bamcheck_simple(bam, mping, bamck_file, orientation):
                 j = j + 1
           
         print >> ofile, matches
-        flank = 10
+        flank = 20
         if indel > 0 and soft > 0:
             flag += 1
         elif indel > 0:

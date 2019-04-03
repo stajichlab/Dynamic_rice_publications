@@ -120,6 +120,10 @@ def multiprocess_pool(parameters, cpu):
     for x in imap_it:
         #print 'status: %s' %(x)
         collect_list.append(x)
+    #clean up
+    #https://timothyawiseman.wordpress.com/2012/12/21/a-really-simple-multiprocessing-python-example/
+    pool.close()
+    pool.join()
     return collect_list
 
 def mping_genotyper_mp_helper(args):
@@ -193,8 +197,8 @@ def main():
     snpmap = convert_MAP_SNP(args.snp_map)
 
     #go through RILs, for each ril determine the status of each mPing
-    bamcheck_file_pseudo = '%s.bamcheck_pseudo.txt' %(args.project)
-    bamcheck_file_ref    = '%s.bamcheck_ref.txt' %(args.project)
+    bamcheck_file_pseudo = '%s.bamcheck_pseudo' %(args.project)
+    bamcheck_file_ref    = '%s.bamcheck_ref' %(args.project)
     mping_status      = defaultdict(lambda : defaultdict(lambda : defaultdict(lambda : str())))
     mping_status_ref  = defaultdict(lambda : defaultdict(lambda : str()))
     mping_bin_gt  = defaultdict(lambda : defaultdict(lambda : str()))

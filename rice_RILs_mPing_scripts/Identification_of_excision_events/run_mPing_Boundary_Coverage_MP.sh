@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=24
-#SBATCH --mem=50G
+#SBATCH --mem=100G
 #SBATCH --time=40:00:00
 #SBATCH --output=run_mPing_Boundary_Coverage_MP.sh.%A_%a.stdout
 #SBATCH -p intel,batch,stajichlab
