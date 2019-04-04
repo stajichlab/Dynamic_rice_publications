@@ -465,7 +465,8 @@ def bamcheck(bam, mping, bamck_file, ril):
                 j = j + 1
         
         print >> ofile, matches
-        flank = 20
+        #flank should not be too long so we won't miss good reads that covers the junction. There is no TE problems here.
+        flank = 10
         if indel > 0 and soft > 0:
             flag += 1
         elif indel > 0:
@@ -508,6 +509,14 @@ def bamcheck(bam, mping, bamck_file, ril):
     if total <= 2:
         print >> ofile, 2
         return 2 # coverage too low
+    #Determine covered reads first, which support excisions (our target). 
+    #Even there are clipped reads (het with both covered and clipped reads) we call these excisions.
+    elif float(float(covered)/total) >= 0.3:
+        print >> ofile, 0
+        if footprint >= 3:
+            return 0 # support mping excision, many read cover the breapoint suggests precise excision, footprint
+        else:
+            return 4 # support mping excision, many read cover the breapoint suggests precise excision, perfect
     elif float(float(clipped)/total) >= 0.3:
         print >> ofile, 1
         return 1 # support mping insertion with clipped reads
@@ -517,12 +526,12 @@ def bamcheck(bam, mping, bamck_file, ril):
     #elif float(float(footprint)/total) > 0.3 and flag == 0:
     #    print >> ofile, 0
     #    return 0 # support mping excision, indel is possibly footprint of excision
-    elif float(float(covered)/total) >= 0.3:
-	print >> ofile, 0
-        if footprint >= 3:
-            return 0 # support mping excision, many read cover the breapoint suggests precise excision, footprint
-        else:
-            return 4 # support mping excision, many read cover the breapoint suggests precise excision, perfect
+    #elif float(float(covered)/total) >= 0.3:
+	#print >> ofile, 0
+        #if footprint >= 3:
+        #    return 0 # support mping excision, many read cover the breapoint suggests precise excision, footprint
+        #else:
+        #    return 4 # support mping excision, many read cover the breapoint suggests precise excision, perfect
     else:
         print >> ofile, 3
         return 3 # other case
@@ -585,6 +594,7 @@ def bamcheck_simple(bam, mping, bamck_file, orientation):
                 j = j + 1
           
         print >> ofile, matches
+        #This flank need to be longer. As TE inserted in the pseudogenome we do not want to get incorrectly aligned reads from TE or flanking sequences.
         flank = 20
         if indel > 0 and soft > 0:
             flag += 1
@@ -652,6 +662,8 @@ def bamcheck_simple(bam, mping, bamck_file, orientation):
     if total <= 2:
         print >> ofile, 2
         return 2 # coverage too low
+    #here we determine clipped reads first, which support excision.
+    #even there are covered reads supporting insertion we still call these excisions.
     elif float(float(clipped)/total) >= 0.3:
         print >> ofile, 1
         return 1 # support mping insertion with clipped reads

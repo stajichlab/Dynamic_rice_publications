@@ -122,8 +122,8 @@ def multiprocess_pool(parameters, cpu):
         collect_list.append(x)
     #clean up
     #https://timothyawiseman.wordpress.com/2012/12/21/a-really-simple-multiprocessing-python-example/
-    pool.close()
-    pool.join()
+    #pool.close()
+    #pool.join()
     return collect_list
 
 def mping_genotyper_mp_helper(args):
