@@ -1,12 +1,8 @@
 ## Identification of mPing/Ping/Pong excision
 
-```shell
-cp ~/BigData/00.RD/RILs/Transpostion/bin/Manuscript_Preparation/Question11_fix_excision_module/*.sh ./
-cp ~/BigData/00.RD/RILs/Transpostion/bin/Manuscript_Preparation/Question11_fix_excision_module/*.py ./
-cp -R ~/BigData/00.RD/RILs/Transpostion/bin/Manuscript_Preparation/Question11_fix_excision_module/lib/ ./
-```
++ Working directory on biocluster: /rhome/cjinfeng/BigData/00.RD/RILs/Transpostion/bin/Manuscript_Preparation/Question11_fix_excision_module/"
 
-+ Analyze read coverage (covered: reads cover junction of TE insertions; clipped: reads have softclip at junction of TE insertions) at mPing/Ping insertions using bam files that were aligned to the reference genome and pseudogenome.
++ Analyze read coverage (covered: reads cover junction of TE insertions; clipped: reads have softclip at junction of TE insertions) at mPing/Ping/Pong insertions using bam files with reads aligned to the reference genome and pseudogenome.
 
 ```shell
 echo "Nonreference mPing/Ping, including 415 mPing and 7 Ping in HEG4 plus 92 other mPings that are present in many RILs (allele frequency > 0.1). Ping16A_Stow (PingA) is processed by a different script."
@@ -14,7 +10,7 @@ python mPing_Boundary_Coverage_MP.py --bam_ref RILs_ALL_bam_correct_merged --bam
 
 arguments:
     --bam: directory that contains bam files with reads aligned to the reference genome
-    --bam_pseudo: directory that has bam files with reads aligned to the pseudogenome with mPing/Ping inserted in the reference genome
+    --bam_pseudo: directory that has bam files with reads aligned to the pseudogenome with mPing/Ping/Pong inserted in the reference genome
     --gff: gff file of nonreference mPing/Ping insertions in the reference genome
     --gff_pseudo: gff file of mPing/Ping insertions (become reference insertions) in the pseudogenome
     --project: prefix for the output files
@@ -30,7 +26,7 @@ arguments:
     --project: prefix for the output files
 ```
 
-+ Determine mPing/Ping/Pong excisions based on read coverage at nonreference mPing/Ping insertions.
++ Determine mPing/Ping/Pong excisions based on read coverage at mPing/Ping/Pong insertions.
 
 ```shell
 echo "Nonreference mPing/Ping/Pong"
@@ -50,7 +46,7 @@ arguments:
     --output: output directory
 ```
 
-+ Summarize RILs with excisions for each nonreference mPing/Ping insertions
++ Generate list of RILs that have excisions for each mPing/Ping/Pong loci
 
 ```shell
 echo "Nonreference mPing/Ping/Pong"
