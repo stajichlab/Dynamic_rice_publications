@@ -1,6 +1,29 @@
 ## Identification of mPing/Ping/Pong excision
 
-+ Working directory on biocluster: /rhome/cjinfeng/BigData/00.RD/RILs/Transpostion/bin/Manuscript_Preparation/Question11_fix_excision_module/"
++ Working directory on biocluster: /rhome/cjinfeng/BigData/00.RD/RILs/Transpostion/bin/Manuscript_Preparation/Question11_fix_excision_module/.
+
++ Create pseudogenomes with mPing/Ping/Pong inserted/excised from the reference genome and align paired-end reads to these genomes.
+
+```shell
+echo "Pseudogenome with 507 mPing and 7 Ping inserted"
+python Pseudo_TEinsertion_Genome.py --repeat mPing_Ping_Pong.fa --gff RILs.ALL_mPing_Ping.gff --genome MSU_r7.fa --project MSU_r7.Pseudo_mPing_Ping_514
+
+arguments:
+    --repeat: fasta format sequence of mPing/Ping/Pong sequence
+    --gff: gff file of 514 nonreference mPing/Ping insertions
+    --genome: the reference genome (MSUv7) to be inserted
+    --project: prefix of output file
+
+python runRIL_bwa.py --input single_ping_rils_fastq --ref MSU_r7.Pseudo_mPing_Ping_514.fa
+
+arguments:
+    --input: directory of fastq files
+    --ref: pseudogenomes used as reference to align the reads 
+
+echo "Pseudogenome with 51 mPing and 1 Ping and 5 Pong excised"
+python Pseudo_TEinsertion_Genome_Ref.py --gff Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff --genome MSU_r7.fa --project Parent.Pseudo_mPing_Ping_Pong_57.Ref_Shared
+python runRIL_bwa.py --input single_ping_rils_fastq --ref Parent.Pseudo_mPing_Ping_Pong_57.Ref_Shared.fa 
+```
 
 + Analyze read coverage (covered: reads cover junction of TE insertions; clipped: reads have softclip at junction of TE insertions) at mPing/Ping/Pong insertions using bam files with reads aligned to the reference genome and pseudogenome.
 
@@ -65,6 +88,7 @@ arguments:
 
 echo "Reference and shared mPing/Ping"
 python Sum_mPing_excision_Ref.py --dir output_MSU7_reference_57_MP3_mPing_GT_Ping_code/ --gff Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff
+
 arguments:
     --dir: directory that contains excision status of each reference mPing/Ping/Pong in each RILs
     --gff: gff file of reference and shared mPing/Ping/Pong loci to be processed
@@ -72,5 +96,24 @@ arguments:
 echo "Select random loci with excisions to validate by PCR"
 python Random_sample_validation.py --input 30 > Random_sample_validation.loci.list.txt
 ```
+
++ Characterize excision footprints
+
+```shell
+echo "Nonreference mPing/Ping/Pong"
+python footprint_events.py --input output_MSU7_nonreference_514_MP3_mPing_GT_Ping_code.mping_excision.list 
+
+arguments:
+   --input: list of RILs that have excisions for each nonreference mPing/Ping loci
+
+echo "Reference and shared mPing/Ping"
+python footprint_events_Ref.py --input output_MSU7_reference_57_MP3_mPing_GT_Ping_code.mping_excision.list
+
+arguments:
+   --input: list of RILs that have excisions for each reference and shared mPing/Ping/Pong loci 
+```
+
+
+
 
 
