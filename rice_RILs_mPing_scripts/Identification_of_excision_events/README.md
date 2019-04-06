@@ -38,7 +38,7 @@ arguments:
     --gff_pseudo: gff file of mPing/Ping insertions (become reference insertions) in the pseudogenome
     --project: prefix for the output files
 
-echo "Reference and shared mPing/Ping, including 44 reference and 7 shared mPing plus 1 reference Ping and 5 reference Pong"
+echo "Reference and shared mPing/Ping/Pong, including 44 reference and 7 shared mPing plus 1 reference Ping and 5 reference Pong"
 python mPing_Boundary_Coverage_Ref_MP.py --bam_ref RILs_ALL_unmapped_mping_bam_Ref_57_mPing_Ping_Pong --bam_pseudo RILs_ALL_bam_correct_merged/ --gff_ref Parent.Pseudo_mPing_Ping_Pong_57.Ref_Shared.gff --gff_pseudo Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff --project output_MSU7_reference_57_MP3
 
 arguments:
@@ -52,7 +52,7 @@ arguments:
 + Determine mPing/Ping/Pong excisions based on read coverage at mPing/Ping/Pong insertions.
 
 ```shell
-echo "Nonreference mPing/Ping/Pong"
+echo "Nonreference mPing/Ping"
 python Ping_number_RILs.High_exicison.py --csv output_MSU7_nonreference_514_MP3_mPing --ping_code RIL272_RelocaTEi.Jinfeng_Lulu.ping_code.table.txt --output output_MSU7_nonreference_514_MP3_mPing_GT_Ping_code
 
 arguments:
@@ -60,7 +60,7 @@ arguments:
     --ping_code: table with Ping copy number and Ping combination code for each RILs
     --output: output directory
 
-echo "Reference and shared mPing/Ping"
+echo "Reference and shared mPing/Ping/Pong"
 python Ping_number_RILs.High_exicison_Ref.py --csv output_MSU7_reference_57_MP3_mPing --ping_code RIL272_RelocaTEi.Jinfeng_Lulu.ping_code.table.txt --gff Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff --output output_MSU7_reference_57_MP3_mPing_GT_Ping_code
 
 arguments:
@@ -72,7 +72,7 @@ arguments:
 + Generate list of RILs that have excisions for each mPing/Ping/Pong loci
 
 ```shell
-echo "Nonreference mPing/Ping/Pong"
+echo "Nonreference mPing/Ping"
 cd output_MSU7_nonreference_514_MP3_mPing_GT_Ping_code
 #These four loci have name issues. We create links with their correct names.
 ln -s Chr3_28019798_28019800.matrix.csv Chr3_28019800_28019802.matrix.csv
@@ -86,7 +86,7 @@ arguments:
     --dir: directory that contains excision status of each nonreference mPing/Ping in each RILs
     --gff: gff file of nonreference mPing/Ping loci to be processed
 
-echo "Reference and shared mPing/Ping"
+echo "Reference and shared mPing/Ping/Pong"
 python Sum_mPing_excision_Ref.py --dir output_MSU7_reference_57_MP3_mPing_GT_Ping_code/ --gff Parent.ALL.mPing_Ping_Pong.Ref_Shared.gff
 
 arguments:
@@ -100,13 +100,13 @@ python Random_sample_validation.py --input 30 > Random_sample_validation.loci.li
 + Characterize excision footprints
 
 ```shell
-echo "Nonreference mPing/Ping/Pong"
+echo "Nonreference mPing/Ping"
 python footprint_events.py --input output_MSU7_nonreference_514_MP3_mPing_GT_Ping_code.mping_excision.list 
 
 arguments:
    --input: list of RILs that have excisions for each nonreference mPing/Ping loci
 
-echo "Reference and shared mPing/Ping"
+echo "Reference and shared mPing/Ping/Pong"
 python footprint_events_Ref.py --input output_MSU7_reference_57_MP3_mPing_GT_Ping_code.mping_excision.list
 
 arguments:
