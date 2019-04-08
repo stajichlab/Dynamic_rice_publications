@@ -1,5 +1,5 @@
 
-![Workflow](Hybrid_assembly.pdf)
+![Workflow](Hybrid_assembly.png)
 
 + Scaffold contigs with 10x genomics, bionano, and genetic map
 
