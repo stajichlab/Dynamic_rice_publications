@@ -16,8 +16,15 @@ optional arguments:
 
 + Distinguish Ping from mPing in RelocaTE2 results
 
-
 ```
+python CallPing.py --input fastq_RelocaTE2/RIL1_RelocaTE2
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+  -o OUTPUT, --output OUTPUT
+  --SNP
+  -v
 
 ```
 
